@@ -50,12 +50,3 @@ notificaciones-service/  Microservicio de notificaciones y alertas (email)
 iot-simulator/           Dispositivo IoT simulado (Java puro)
 frontend/                Web app React (Vite) servida por nginx, con proxy al core
 scripts/                 Smoke tests y empaquetado de la entrega
-docs/                    Informe, guías por fase, decisiones y diagramas
-```
-
-## Documentación
-- [`docs/INFORME.md`](docs/INFORME.md) (y `docs/INFORME.docx`): informe del TP.
-- [`docs/GUIA_DEL_CODIGO.md`](docs/GUIA_DEL_CODIGO.md): mapa de archivos y en qué orden leerlos.
-- [`docs/guia/`](docs/guia/): qué se hizo en cada fase (00–11) y preguntas para la defensa.
-- [`docs/DECISIONES.md`](docs/DECISIONES.md) y [`docs/MEJORAS_FUTURAS.md`](docs/MEJORAS_FUTURAS.md).
-- [`docs/diagramas/`](docs/diagramas/): DER, UML y Diagrama de Sistema.
