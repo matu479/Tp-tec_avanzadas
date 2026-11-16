@@ -1,0 +1,30 @@
+# Configuración de notificaciones-service. Los valores ${VARIABLE:defecto} se pisan desde docker-compose.
+server:
+  port: 8082
+
+spring:
+  application:
+    name: notificaciones-service
+  # Servidor de correo (en Docker: MailHog, que atrapa todos los mails)
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+
+# Dónde está el core (registro de alertas)
+core:
+  url: ${CORE_URL:http://localhost:8080}
+
+notificaciones:
+  # Si la alerta no tiene profesional asignado, el mail va a la guardia (S12)
+  email-guardia: ${EMAIL_GUARDIA:guardia@tp.com}
+  email-remitente: ${EMAIL_REMITENTE:alertas@telemedicina.tp}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

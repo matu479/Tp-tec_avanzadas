@@ -1,0 +1,44 @@
+# Configuración de core-service. Los valores ${VARIABLE:defecto} se pisan desde docker-compose.
+server:
+  port: 8080
+
+spring:
+  application:
+    name: core-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/telemedicina}
+    username: ${DB_USUARIO:telemedicina}
+    password: ${DB_PASSWORD:telemedicina}
+  # schema.sql y data.sql escritos a mano (sin Flyway). Se ejecutan en cada arranque.
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+  # GraphQL en /graphql y consola GraphiQL en /graphiql
+  graphql:
+    graphiql:
+      enabled: true
+  jpa:
+    # Hibernate NO crea tablas: solo valida que las entidades coincidan con schema.sql
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+# Dónde está metricas-service (consulta de métricas)
+metricas:
+  url: ${METRICAS_URL:http://localhost:8081}
+
+# Emails de los profesionales de prueba (opcional, para recibir la alerta en un mail real)
+demo:
+  email-profesional-clinica: ${EMAIL_PROFESIONAL_CLINICA:}
+  email-profesional-cardio: ${EMAIL_PROFESIONAL_CARDIO:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

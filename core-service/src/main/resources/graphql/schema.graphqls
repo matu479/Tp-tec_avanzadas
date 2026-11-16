@@ -1,0 +1,62 @@
+# Esquema GraphQL del core-service.
+# Los profesionales piden SOLO los datos del historial que necesitan (consigna).
+# Las fechas viajan como String en formato ISO (no se agregan escalares propios).
+
+type Query {
+  paciente(id: ID!): Paciente
+  historialClinico(idPaciente: ID!): [ConsultaMedica!]!
+  profesional(id: ID!): Profesional
+}
+
+type Mutation {
+  registrarDiagnostico(idConsulta: ID!, descripcion: String!): Diagnostico!
+}
+
+type Paciente {
+  id: ID!
+  nombre: String!
+  apellido: String!
+  dni: String!
+  fechaNacimiento: String!
+  expediente: ExpedienteClinico
+  citas: [Cita!]!
+}
+
+type Profesional {
+  id: ID!
+  nombre: String!
+  apellido: String!
+  matricula: String!
+  especialidad: String!
+}
+
+type ExpedienteClinico {
+  id: ID!
+  antecedentes: String
+  observacionesGenerales: String
+  fechaCreacion: String!
+  consultas: [ConsultaMedica!]!
+}
+
+type ConsultaMedica {
+  id: ID!
+  fechaConsulta: String!
+  observaciones: String
+  indicaciones: String
+  profesional: Profesional!
+  diagnostico: Diagnostico
+}
+
+type Diagnostico {
+  id: ID!
+  descripcion: String!
+  fecha: String!
+}
+
+type Cita {
+  id: ID!
+  fechaHora: String!
+  estado: String!
+  motivo: String
+  profesional: Profesional!
+}

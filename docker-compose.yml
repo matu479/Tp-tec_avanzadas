@@ -1,0 +1,143 @@
+# TP Telemedicina - los 8 contenedores del sistema (7 del backend + el frontend).
+# Levantar todo:  docker compose up -d --build
+# Los valores ${VARIABLE:-defecto} se pueden cambiar copiando .env.example a .env
+name: telemedicina-tec-avs
+
+services:
+
+  # ---------- Infraestructura ----------
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-telemedicina}
+      POSTGRES_USER: ${POSTGRES_USER:-telemedicina}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-telemedicina}
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
+    # No se publica el puerto: la máquina del alumno ya tiene un Postgres en el 5432.
+    volumes:
+      - postgres-datos:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-telemedicina} -d ${POSTGRES_DB:-telemedicina}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo-datos:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "${MAILHOG_PUERTO:-8025}:8025"   # bandeja web: http://localhost:8025
+
+  # ---------- Backend del sistema ----------
+  core-service:
+    build:
+      context: .
+      dockerfile: core-service/Dockerfile
+    environment:
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-telemedicina}
+      DB_USUARIO: ${POSTGRES_USER:-telemedicina}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-telemedicina}
+      METRICAS_URL: http://metricas-service:8081
+      EMAIL_PROFESIONAL_CLINICA: ${EMAIL_PROFESIONAL_CLINICA:-}
+      EMAIL_PROFESIONAL_CARDIO: ${EMAIL_PROFESIONAL_CARDIO:-}
+    ports:
+      - "${CORE_PUERTO:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+
+  metricas-service:
+    build:
+      context: .
+      dockerfile: metricas-service/Dockerfile
+    environment:
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
+      MONGO_URI: mongodb://mongo:27017/telemedicina_metricas
+      NOTIFICACIONES_URL: http://notificaciones-service:8082
+    ports:
+      - "${METRICAS_PUERTO:-8081}:8081"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+
+  notificaciones-service:
+    build:
+      context: .
+      dockerfile: notificaciones-service/Dockerfile
+    environment:
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+      CORE_URL: http://core-service:8080
+      EMAIL_GUARDIA: ${EMAIL_GUARDIA:-guardia@tp.com}
+    ports:
+      - "${NOTIFICACIONES_PUERTO:-8082}:8082"
+    depends_on:
+      mailhog:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8082/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+
+  # ---------- Frontend React (nginx sirve la app y hace de proxy al core) ----------
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "${FRONT_PUERTO:-3000}:80"   # web app: http://localhost:3000
+    depends_on:
+      core-service:
+        condition: service_healthy
+    healthcheck:
+      # 127.0.0.1 y no "localhost": en el contenedor localhost resuelve a IPv6 (::1) y nginx escucha en IPv4
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ---------- Dispositivo IoT simulado ----------
+  iot-simulator:
+    build:
+      context: .
+      dockerfile: iot-simulator/Dockerfile
+    environment:
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
+      CORE_URL: http://core-service:8080
+      METRICAS_URL: http://metricas-service:8081
+      INTERVALO_SEGUNDOS: ${INTERVALO_SEGUNDOS:-5}
+      PROBABILIDAD_FUERA_RANGO: ${PROBABILIDAD_FUERA_RANGO:-0}   # 0 = solo valores normales
+      ESCENARIO_CRITICO: ${ESCENARIO_CRITICO:-false}
+    depends_on:
+      core-service:
+        condition: service_healthy
+      metricas-service:
+        condition: service_healthy
+
+volumes:
+  postgres-datos:
+  mongo-datos:

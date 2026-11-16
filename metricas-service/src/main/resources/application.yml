@@ -1,0 +1,24 @@
+# Configuración de metricas-service. Los valores ${VARIABLE:defecto} se pisan desde docker-compose.
+server:
+  port: 8081
+
+spring:
+  application:
+    name: metricas-service
+  data:
+    mongodb:
+      uri: ${MONGO_URI:mongodb://localhost:27017/telemedicina_metricas}
+
+# Dónde está notificaciones-service (evento de riesgo)
+notificaciones:
+  url: ${NOTIFICACIONES_URL:http://localhost:8082}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
